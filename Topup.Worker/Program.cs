@@ -11,8 +11,9 @@ using Topup.Infrastructure.Services;
 using Topup.Worker;
 
 var builder = Host.CreateApplicationBuilder(args);
-builder.Services.AddHostedService<Worker>();
-builder.Services.AddScoped<IQueueMessageConsumer, QueueMessageConsumer>();
+builder.Services.AddHostedService<MessageConsumerWorker>();
+builder.Services.AddScoped<IQMConsumerService, QMConsumerService>();
+builder.Services.AddScoped<IMessageProcessorService, MessageProcessorService>();
 builder.Services.AddSingleton(typeof(ILogService<>), typeof(LogService<>));
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 builder.Services.AddSingleton<IAppSetting, AppSettingsProvider>();
@@ -24,6 +25,8 @@ builder.Services.AddDbContextPool<ApplicationDbContext>((sp, options) =>
     options.UseSqlServer(settings.ConnectionString);
            
 });
+builder.Services.AddHostedService<MessageConsumerWorker>();
+builder.Services.AddHostedService<MessageProcessorWorker>();
 builder.Services.AddSerilog();
 Log.Logger = new LoggerConfiguration()
     .MinimumLevel.Information()
@@ -32,7 +35,7 @@ Log.Logger = new LoggerConfiguration()
     e.Properties["SourceContext"].ToString().Contains("LogService"))
 
     .WriteTo.File(new RenderedCompactJsonFormatter(),
-        path: "logs/BookCafe-.txt",
+        path: "logs/Topup-.txt",
         rollingInterval: RollingInterval.Day
           )
     .CreateLogger();

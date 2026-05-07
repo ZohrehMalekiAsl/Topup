@@ -1,5 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using System;
 using Topup.Domain.Entities;
+using Topup.Domain.Enums;
 using Topup.Domain.Repositories;
 using Topup.Infrastructure.Context;
 
@@ -12,9 +14,13 @@ namespace Topup.Infrastructure.Repositories
             return await dbContext.ChargeRequest.FindAsync(guid);
         }
 
-        public Task<List<ChargeRequest>> GetRequestByStatus(string status)
+        public async Task<List<ChargeRequest>> GetRequestByStatus(string status)
         {
-            throw new NotImplementedException();
+            return await dbContext.ChargeRequest
+                .Where(x=> x.Status == status)
+                .Take(40)
+                .ToListAsync();
+             
         }
     }
 }
