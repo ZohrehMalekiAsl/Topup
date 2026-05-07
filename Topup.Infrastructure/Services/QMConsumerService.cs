@@ -9,15 +9,15 @@ using Topup.Domain.Repositories;
 
 namespace Topup.Infrastructure.Services
 {
-    public class QueueMessageConsumer: IQueueMessageConsumer
+    public class QMConsumerService: IQMConsumerService
     {
         private readonly IChargeRequestRepository _repository;
         private readonly IUnitOfWork _unitOfWork;
-        private readonly ILogService<QueueMessageConsumer> _logService;
+        private readonly ILogService<QMConsumerService> _logService;
         private readonly IAppSetting _appSetting;
 
-        public QueueMessageConsumer(IChargeRequestRepository repository, IUnitOfWork unitOfWork,
-            ILogService<QueueMessageConsumer> logService , IAppSetting appSetting)
+        public QMConsumerService(IChargeRequestRepository repository, IUnitOfWork unitOfWork,
+            ILogService<QMConsumerService> logService , IAppSetting appSetting)
         {
             _repository = repository;
             _unitOfWork = unitOfWork;
@@ -25,7 +25,7 @@ namespace Topup.Infrastructure.Services
             _appSetting = appSetting;
         }
 
-        public void StartConsuming(CancellationToken ct)
+        public async Task  StartConsuming(CancellationToken ct)
         {
 
             var factory = new ConnectionFactory { HostName = _appSetting.ConsumerMqHostName };
