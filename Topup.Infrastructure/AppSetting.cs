@@ -11,6 +11,7 @@ namespace Topup.Infrastructure
     {
         public ConnectionStrings ConnectionStrings { get; set; }
         public ConsumerMq RabbitMq { get; set; }=new ConsumerMq();
+        public PublisherMq PublisherRabbitMq { get; set; }=new PublisherMq();
 
     }
 
@@ -18,6 +19,13 @@ namespace Topup.Infrastructure
     {
         public string ConsumerQueue { get; set; }
         public string ConsumerMqHostName { get; set; }
+    }
+    public class PublisherMq
+    {
+       public string SuccessPublisherMqHostName { get; set; }
+       public string SuccessPublisherQueue { get; set; }
+       public string FailPublisherMqHostName { get; set; }
+       public string FailPublisherQueue { get; set; }
     }
     public class ConnectionStrings
     {
