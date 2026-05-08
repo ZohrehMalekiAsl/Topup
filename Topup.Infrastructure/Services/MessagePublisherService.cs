@@ -24,13 +24,26 @@ namespace Topup.Infrastructure.Services
             _logger = logger;
             _appSetting = appSetting;
         }
-        public async Task StartPublishing(CancellationToken ct)
+        public async Task StartPublishing(CancellationToken ct, string status)
         {
             try
             {
+                string queue= string.Empty;
+                string mqHostName = string.Empty;
+
+                if (status == Status.Success.ToString())
+                {
+                    queue = _appSetting.SuccessPublisherQueue;
+                    mqHostName = _appSetting.SuccessPublisherMqHostName;
+                }
+                else
+                {
+                    queue = _appSetting.FailPublisherQueue;
+                    mqHostName = _appSetting.FailPublisherMqHostName;
+                }
                 var factory = new ConnectionFactory
                 {
-                    HostName = _appSetting.SuccessPublisherMqHostName
+                    HostName = mqHostName
                 };
 
                 using var connection = await factory.CreateConnectionAsync(ct);
@@ -49,7 +62,8 @@ namespace Topup.Infrastructure.Services
                 {
                     tcs.TrySetResult(false);
                 };
-                var requests = await _repository.GetRequestByStatus(Status.Success.ToString());
+                var requests = await _repository.GetRequestByStatus(status);
+
                 if (requests != null && requests.Count != 0)
                 {
                     foreach (var record in requests)
@@ -66,7 +80,7 @@ namespace Topup.Infrastructure.Services
 
                         await channel.BasicPublishAsync(
                             exchange: "",
-                            routingKey: _appSetting.SuccessPublisherQueue,
+                            routingKey: queue,
                             body: body,
                             cancellationToken: ct
                         );
@@ -74,7 +88,14 @@ namespace Topup.Infrastructure.Services
                         var confirmed = await tcs.Task;
                         if (confirmed)
                         {
-                            record.Status = Status.FinishedSuccess.ToString();
+                            if (status == Status.Success.ToString())
+                            {
+                                record.Status = Status.FinishedSuccess.ToString();
+                            }
+                            else 
+                            {
+                                record.Status = Status.FinishedFailed.ToString();
+                            }
                             _repository.Update(record);
                         }
                     }

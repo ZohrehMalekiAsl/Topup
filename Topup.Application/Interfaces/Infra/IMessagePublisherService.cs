@@ -8,6 +8,6 @@ namespace Topup.Application.Interfaces.Infra
 {
     public interface IMessagePublisherService
     {
-        Task StartPublishing(CancellationToken ct);
+        Task StartPublishing(CancellationToken ct, string status);
     }
 }

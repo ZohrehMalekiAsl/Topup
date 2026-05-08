@@ -28,7 +28,8 @@ builder.Services.AddDbContextPool<ApplicationDbContext>((sp, options) =>
 });
 builder.Services.AddHostedService<MessageConsumerWorker>();
 builder.Services.AddHostedService<MessageProcessorWorker>();
-builder.Services.AddHostedService<MessagePublisherWorker>();
+builder.Services.AddHostedService<MessageSuccessPublisherWorker>();
+builder.Services.AddHostedService<MessageFailPublisherWorker>();
 builder.Services.AddSerilog();
 Log.Logger = new LoggerConfiguration()
     .MinimumLevel.Information()

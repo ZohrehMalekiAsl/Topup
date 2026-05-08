@@ -1,15 +1,16 @@
 ﻿using Topup.Application.Interfaces.Infra;
+using Topup.Domain.Enums;
 using Topup.Domain.Interfaces;
 
 namespace Topup.Worker
 {
-    public class MessagePublisherWorker : BackgroundService
+    public class MessageSuccessPublisherWorker : BackgroundService
     {
-        private readonly ILogService<MessageConsumerWorker> _logger;
+        private readonly ILogService<MessageSuccessPublisherWorker> _logger;
 
         private readonly IServiceScopeFactory _scopeFactory;
 
-        public MessagePublisherWorker(ILogService<MessageConsumerWorker> logger, IServiceScopeFactory scopeFactory)
+        public MessageSuccessPublisherWorker(ILogService<MessageSuccessPublisherWorker> logger, IServiceScopeFactory scopeFactory)
         {
             _logger = logger;
             _scopeFactory = scopeFactory;
@@ -23,7 +24,7 @@ namespace Topup.Worker
                     using var scope = _scopeFactory.CreateScope();
                     var publishService = scope.ServiceProvider.GetRequiredService<IMessagePublisherService>();
 
-                    await publishService.StartPublishing(stoppingToken);
+                    await publishService.StartPublishing(stoppingToken, Status.Success.ToString()) ;
                 }
                 catch (Exception ex)
                 {
