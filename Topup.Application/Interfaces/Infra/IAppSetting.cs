@@ -9,5 +9,7 @@
         string SuccessPublisherQueue { get; }
         string FailPublisherMqHostName { get; }
         string FailPublisherQueue { get; }
+        string RetryCount { get; }
+        string HamrahAvalUrl { get; }
     }
 }

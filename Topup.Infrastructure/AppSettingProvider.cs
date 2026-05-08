@@ -19,5 +19,8 @@ namespace Topup.Infrastructure
         public string SuccessPublisherQueue => _options.CurrentValue.PublisherRabbitMq.SuccessPublisherQueue;
         public string FailPublisherMqHostName => _options.CurrentValue.PublisherRabbitMq.FailPublisherMqHostName;
         public string FailPublisherQueue => _options.CurrentValue.PublisherRabbitMq.FailPublisherQueue;
+
+        public string RetryCount => _options.CurrentValue.RetryCount;
+        public string HamrahAvalUrl => _options.CurrentValue.HamrahAvalUrl;
     }
 }

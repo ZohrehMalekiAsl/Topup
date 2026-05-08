@@ -12,6 +12,8 @@ namespace Topup.Infrastructure
         public ConnectionStrings ConnectionStrings { get; set; }
         public ConsumerMq RabbitMq { get; set; }=new ConsumerMq();
         public PublisherMq PublisherRabbitMq { get; set; }=new PublisherMq();
+        public string RetryCount { get; set; }
+        public string HamrahAvalUrl { get; set; }
 
     }
 
