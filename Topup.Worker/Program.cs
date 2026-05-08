@@ -12,7 +12,6 @@ using Topup.Infrastructure.Services.ExternalServices;
 using Topup.Worker;
 
 var builder = Host.CreateApplicationBuilder(args);
-builder.Services.AddHostedService<MessageConsumerWorker>();
 builder.Services.AddScoped<IMessageConsumerService, MessageConsumerService>();
 builder.Services.AddScoped<IMessageProcessorService, MessageProcessorService>();
 builder.Services.AddScoped<IMessagePublisherService, MessagePublisherService>();

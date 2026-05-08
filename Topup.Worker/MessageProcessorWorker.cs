@@ -10,11 +10,11 @@ namespace Topup.Worker
 {
     public class MessageProcessorWorker : BackgroundService
     {
-        private readonly ILogService<MessageConsumerWorker> _logger;
+        private readonly ILogService<MessageProcessorWorker> _logger;
 
         private readonly IServiceScopeFactory _scopeFactory;
 
-        public MessageProcessorWorker(ILogService<MessageConsumerWorker> logger, IServiceScopeFactory scopeFactory)
+        public MessageProcessorWorker(ILogService<MessageProcessorWorker> logger, IServiceScopeFactory scopeFactory)
         {
             _logger = logger;
             _scopeFactory = scopeFactory;

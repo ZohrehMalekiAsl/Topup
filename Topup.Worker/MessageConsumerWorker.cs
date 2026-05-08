@@ -24,7 +24,7 @@ namespace Topup.Worker
                 {
                     using var scope = _scopeFactory.CreateScope();
                     var QMService = scope.ServiceProvider.GetRequiredService<IMessageConsumerService>();
-                    
+
                     await QMService.StartConsuming(stoppingToken);
                 }
                 catch (Exception ex)

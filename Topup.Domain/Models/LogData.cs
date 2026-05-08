@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace Topup.Domain.Models
+﻿namespace Topup.Domain.Models
 {
     public class LogData<TRequest, TResponse>
     {
@@ -12,5 +6,6 @@ namespace Topup.Domain.Models
         public TResponse ResponseInfo { get; set; }
         public long ElapsedMilliseconds { get; set; }
         public string CorrelationId { get; set; }
+        public string Description { get; set; }
     }
 }
