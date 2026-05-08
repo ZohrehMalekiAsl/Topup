@@ -8,7 +8,7 @@ namespace Topup.Application.Dtos.ExternalServices
 {
     public class AvalResponseModel
     {
-        public Guid Id { get; set; }
+        public string systemTrace { get; set; }
         public string Status { get; set; }
     }
 }

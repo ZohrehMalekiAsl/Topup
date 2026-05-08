@@ -3,8 +3,9 @@
     public enum Status
     {
         Pending,
-        Processing,
         Success,
-        Failed
+        Failed,
+        FinishedSuccess,
+        FinishedFailed
     }
 }

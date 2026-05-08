@@ -14,7 +14,7 @@ namespace Topup.Domain.Entities
         public string TerminalId { get; set; }
         public string Status { get; set; }
         public short RetryCount { get; set; }
-        public string? ExternalServiceResponse { get; set; }
+        public string? SystemTrace { get; set; }
         public DateTime RequestTimestamp { get; set; }
     }
 }

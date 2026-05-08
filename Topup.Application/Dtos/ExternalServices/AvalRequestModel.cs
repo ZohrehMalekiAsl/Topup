@@ -10,6 +10,6 @@ namespace Topup.Application.Dtos.ExternalServices
     {
         public string Phone { get; set; }
         public string Amount { get; set; }
-        public Guid Id { get; set; }
+        public string SystemTrace { get; set; }
     }
 }

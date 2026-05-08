@@ -12,7 +12,7 @@ namespace Topup.Infrastructure.Context
         }
         protected override void OnModelCreating(ModelBuilder builder)
         {
-            builder.Entity<ChargeRequest>();
+            builder.Entity<ChargeRequest>().HasIndex(u => u.SystemTrace).IsUnique();
             builder.ApplyConfigurationsFromAssembly(typeof(ChargeRequestConfig).Assembly);
         }
     }
