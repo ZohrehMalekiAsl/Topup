@@ -1,4 +1,5 @@
-﻿using RabbitMQ.Client;
+﻿using Microsoft.Extensions.Logging;
+using RabbitMQ.Client;
 using System.Text;
 using System.Text.Json;
 using Topup.Application.Interfaces.Infra;
@@ -12,49 +13,78 @@ namespace Topup.Infrastructure.Services
     {
         private readonly IChargeRequestRepository _repository;
         private readonly IUnitOfWork _unitOfWork;
-        private readonly ILogService<MessageConsumerService> _logService;
+        private readonly ILogService<MessageConsumerService> _logger;
         private readonly IAppSetting _appSetting;
 
         public MessagePublisherService(IChargeRequestRepository repository, IUnitOfWork unitOfWork,
-            ILogService<MessageConsumerService> logService, IAppSetting appSetting)
+            ILogService<MessageConsumerService> logger, IAppSetting appSetting)
         {
             _repository = repository;
             _unitOfWork = unitOfWork;
-            _logService = logService;
+            _logger = logger;
             _appSetting = appSetting;
         }
         public async Task StartPublishing(CancellationToken ct)
         {
-            var factory = new ConnectionFactory { HostName = _appSetting.SuccessPublisherMqHostName };
-            using var connection = factory.CreateConnectionAsync();
-            using var Channel = connection.Result.CreateChannelAsync();
-
-            //var failfactory = new ConnectionFactory { HostName = _appSetting.FailPublisherMqHostName };
-            //using var failconnection = factory.CreateConnectionAsync();
-            //using var failChannel = failconnection.Result.CreateChannelAsync();
-
-            var requests = await _repository.GetRequestByStatus(Status.Success.ToString());
-            foreach (var record in requests)
+            try
             {
-                var body = JsonSerializer.Serialize(new
+                var factory = new ConnectionFactory
                 {
-                    record.TerminalId,
-                    record.Status,
-                    record.Amount,
-                    record.Id
-                });
-                var request = Encoding.UTF8.GetBytes(body);
-                await Channel.Result.BasicPublishAsync(
-                    exchange: "",
-                    routingKey: _appSetting.SuccessPublisherQueue,
-                    body: request,
-                    ct
-                    );
-                record.Status = Status.Processing.ToString();
-                _repository.Update(record);
-            }
-            await _unitOfWork.SaveAysnc();
+                    HostName = _appSetting.SuccessPublisherMqHostName
+                };
 
+                using var connection = await factory.CreateConnectionAsync(ct);
+                using var channel = await connection.CreateChannelAsync(null, ct);
+
+                var tcs = new TaskCompletionSource<bool>();
+                channel.BasicAcksAsync += async (sender, ea) =>
+                {
+                    if (ea.Multiple == false)
+                    {
+                        tcs.TrySetResult(true);
+                    }
+                };
+
+                channel.BasicNacksAsync += async (sender, ea) =>
+                {
+                    tcs.TrySetResult(false);
+                };
+                var requests = await _repository.GetRequestByStatus(Status.Success.ToString());
+                if (requests != null && requests.Count != 0)
+                {
+                    foreach (var record in requests)
+                    {
+                        var bodyObj = new
+                        {
+                            record.TerminalId,
+                            record.PhoneNumber,
+                            record.Amount,
+                            record.SystemTrace
+                        };
+
+                        var body = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(bodyObj));
+
+                        await channel.BasicPublishAsync(
+                            exchange: "",
+                            routingKey: _appSetting.SuccessPublisherQueue,
+                            body: body,
+                            cancellationToken: ct
+                        );
+
+                        var confirmed = await tcs.Task;
+                        if (confirmed)
+                        {
+                            record.Status = Status.FinishedSuccess.ToString();
+                            _repository.Update(record);
+                        }
+                    }
+                    await _unitOfWork.SaveAysnc();
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogData(LogLevel.Error, ex.Message);
+            }
         }
     }
 }

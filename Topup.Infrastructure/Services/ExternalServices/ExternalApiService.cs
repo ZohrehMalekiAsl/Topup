@@ -14,110 +14,95 @@ namespace Topup.Infrastructure.Services.ExternalServices
     {
         private readonly HttpClient _httpClient;
         private readonly ILogService<ExternalApiService> _logger;
+        private readonly IAppSetting _appSetting;
 
-        public ExternalApiService(HttpClient httpClient, ILogService<ExternalApiService> logger)
+        public ExternalApiService(HttpClient httpClient, ILogService<ExternalApiService> logger,
+            IAppSetting appSetting)
         {
             _httpClient = httpClient;
             _logger = logger;
-            _httpClient.BaseAddress = new Uri("https://api.example.com/charge");
+            _appSetting = appSetting;
+            _httpClient = httpClient;
         }
 
         public async Task<AvalResponseModel> ChargeAsync(AvalRequestModel model)
         {
-            var request = new AvalRequestDto
-            {
-                Amount = model.Amount,
-                Phone = model.Phone,
-            };
+            AvalResponseModel response =new AvalResponseModel();
+            response.systemTrace = model.SystemTrace;
 
-            var jsonContent = new StringContent(
+            try
+            {
+                var request = new AvalRequestDto
+                {
+                    Amount = model.Amount,
+                    Phone = model.Phone,
+                };
+
+                var jsonContent = new StringContent(
                 JsonSerializer.Serialize(request),
                 Encoding.UTF8,
                 "application/json");
 
-            try
-            {
-
-                var response = await _httpClient.PostAsync("/api/v1/charge", jsonContent);
-                var avalResponse = new AvalResponseModel();
-                if (response.IsSuccessStatusCode)
+                _httpClient.BaseAddress = new Uri(_appSetting.HamrahAvalUrl);
+                var httpResponse = await _httpClient.PostAsync("/api/v1/charge", jsonContent);
+                
+                if (httpResponse.IsSuccessStatusCode)
                 {
-                    var responseStream = await response.Content.ReadAsStreamAsync();
+                    var responseStream = await httpResponse.Content.ReadAsStreamAsync();
                     var responseDto = await JsonSerializer.DeserializeAsync<AvalResponseDto>(responseStream);
-                    if (responseDto != null)
+                    
+                    if(responseDto != null)
                     {
-                        avalResponse.Status = Status.Success.ToString();
-                        avalResponse.Id = model.Id;
+                        response.Status = responseDto.Status;
 
-                        var log = new LogData<AvalRequestModel, AvalResponseModel>
+                        var log = new LogData<AvalRequestModel, AvalResponseDto>
                         {
-                            CorrelationId = model.Id.ToString(),
+                            CorrelationId = model.SystemTrace,
                             RequestInfo = model,
-                            ResponseInfo = avalResponse
+                            ResponseInfo = responseDto
                         };
                         _logger.LogData(LogLevel.Information, log);
                     }
                     else
                     {
-                        avalResponse.Status = Status.Failed.ToString();
-                        avalResponse.Id = model.Id;
-                        var log = new LogData<AvalRequestModel, AvalResponseModel>
+                        response.Status = Status.Failed.ToString();
+                        var log = new LogData<AvalRequestModel, string>
                         {
-                            CorrelationId = model.Id.ToString(),
+                            CorrelationId = model.SystemTrace,
                             RequestInfo = model,
-                            ResponseInfo = avalResponse
+                            Description = null
                         };
                         _logger.LogData(LogLevel.Error, log);
                     }
-  
-                    return avalResponse;
+                    return response;
                 }
                 else
                 {
-                    var errorContent = await response.Content.ReadAsStringAsync();
+                    var errorContent = await httpResponse.Content.ReadAsStringAsync();
                     var log = new LogData<AvalRequestModel, string>
                     {
-                        CorrelationId = model.Id.ToString(),
+                        CorrelationId = model.SystemTrace,
                         RequestInfo = model,
-                        ResponseInfo = errorContent
+                        Description = errorContent
                     };
                     _logger.LogData(LogLevel.Error, log);
-                    return new AvalResponseModel
-                    {
-                        Status = Status.Failed.ToString(),
-                        Id = model.Id
-                    };
+
+                    response.Status = Status.Failed.ToString();
+                    return response;
                 }
             }
-            catch (HttpRequestException ex)
+            catch (Exception ex)
             {
                 var log = new LogData<AvalRequestModel, string>
                 {
-                    CorrelationId = model.Id.ToString(),
+                    CorrelationId = model.SystemTrace,
                     RequestInfo = model,
-                    ResponseInfo = ex.Message
+                    Description = ex.Message
                 };
                 _logger.LogData(LogLevel.Error, log);
-                return new AvalResponseModel
-                {
-                    Status = Status.Failed.ToString(),
-                    Id = model.Id
-                };
-            }
-            catch (JsonException ex)
-            {
-                var log = new LogData<AvalRequestModel, string>
-                {
-                    CorrelationId = model.Id.ToString(),
-                    RequestInfo = model,
-                    ResponseInfo = ex.Message
-                };
-                _logger.LogData(LogLevel.Error, log);
-                return new AvalResponseModel
-                {
-                    Status = Status.Failed.ToString(),
-                    Id = model.Id
-                };
+
+                response.Status = Status.Failed.ToString();
+                return response;
             }
         }
     }

@@ -1,7 +1,9 @@
-﻿using Topup.Application.Dtos.ExternalServices;
+﻿using Microsoft.Extensions.Logging;
+using Topup.Application.Dtos.ExternalServices;
 using Topup.Application.Interfaces.Infra;
 using Topup.Domain.Enums;
 using Topup.Domain.Interfaces;
+using Topup.Domain.Models;
 using Topup.Domain.Repositories;
 
 namespace Topup.Infrastructure.Services
@@ -10,21 +12,24 @@ namespace Topup.Infrastructure.Services
     {
         private readonly IChargeRequestRepository _repository;
         private readonly IUnitOfWork _unitOfWork;
-        private readonly ILogService<MessageProcessorService> _logService;
+        private readonly ILogService<MessageProcessorService> _logger;
         private readonly IExternalApiService _hamrahAvalApi;
+        private readonly IAppSetting _appSetting;
 
         public MessageProcessorService(IChargeRequestRepository repository, IUnitOfWork unitOfWork,
-            ILogService<MessageProcessorService> logService, IExternalApiService hamrahAvalApi)
+            ILogService<MessageProcessorService> logger, IExternalApiService hamrahAvalApi,
+            IAppSetting appSetting)
         {
             _repository = repository;
             _unitOfWork = unitOfWork;
-            _logService = logService;
+            _logger = logger;
             _hamrahAvalApi = hamrahAvalApi;
+            _appSetting = appSetting;
         }
         public async Task ProccessPendingAsync(CancellationToken cancellationToken)
         {
             var requests = await _repository.GetRequestByStatus(Status.Pending.ToString());
-            if (requests != null)
+            if (requests != null && requests.Count != 0)
             {
                 try
                 {
@@ -39,13 +44,13 @@ namespace Topup.Infrastructure.Services
 
                         if (response.Status == Status.Failed.ToString())
                         {
-                            record.RetryCount = record.RetryCount ++;
+                            record.RetryCount++;
                         }
-                        else if(response.Status == Status.Failed.ToString() && record.RetryCount>=3)
+                        if (response.Status == Status.Failed.ToString() && record.RetryCount >= short.Parse(_appSetting.RetryCount))
                         {
                             record.Status = Status.Failed.ToString();
                         }
-                        else if(response.Status == Status.Success.ToString())
+                        else if (response.Status == Status.Success.ToString())
                         {
                             record.Status = response.Status;
                         }
@@ -53,8 +58,9 @@ namespace Topup.Infrastructure.Services
                     }
                     await _unitOfWork.SaveAysnc();
                 }
-                catch
+                catch (Exception ex)
                 {
+                    _logger.LogData(LogLevel.Error, ex.Message);
                 }
             }
         }
